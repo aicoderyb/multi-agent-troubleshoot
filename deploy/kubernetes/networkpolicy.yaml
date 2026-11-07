@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mulat-agent-api
+  namespace: ai-agents
+spec:
+  podSelector:
+    matchLabels:
+      app: mulat-agent-api
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+    - ports:
+        - protocol: TCP
+          port: 5432

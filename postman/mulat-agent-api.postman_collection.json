@@ -1,0 +1,538 @@
+{
+  "info": {
+    "_postman_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "name": "Mulat — Multi-Agent Troubleshooter",
+    "description": "HTTP API for the agent service (FastAPI on port 8000 per architecture doc).\n\n**Import:** Postman → Import → select this file and `mulat-local.postman_environment.json`, then choose the **Mulat — Local** environment.\n\n**Flow:**\n1. Run **POST /ask** (or **POST /alert**). If the graph hits the human gate, the test script saves `thread_id` and `run_id`.\n2. Run **POST /approve** with approve or reject.\n\nThe **Tool backing APIs** folder calls Kubernetes and Prometheus directly (same endpoints as Tool_API.md) for testing RBAC and queries without the LLM.\n\nNote: The Python service is not in this repo yet; these requests match the planned contract in DIRECTORY_STRUCTURE.md and k8s-multi-agent-troubleshooter.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Agent API (mulat service)",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Liveness/readiness once implemented (common FastAPI pattern)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /docs (OpenAPI UI)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/docs",
+            "description": "FastAPI Swagger UI when the service is running."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /ask — full pre-release check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "  try {",
+                  "    const body = pm.response.json();",
+                  "    if (body.thread_id) pm.environment.set('thread_id', body.thread_id);",
+                  "    if (body.run_id) pm.environment.set('run_id', body.run_id);",
+                  "  } catch (e) {}",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Check the cluster before tomorrow's release.\",\n  \"source\": \"postman\",\n  \"thread_id\": \"{{$guid}}\"\n}"
+            },
+            "url": "{{baseUrl}}/ask",
+            "description": "User/CLI trigger. Supervisor should fan out to all three specialists for a broad check."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /ask — node NotReady (node health only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "  try {",
+                  "    const body = pm.response.json();",
+                  "    if (body.thread_id) pm.environment.set('thread_id', body.thread_id);",
+                  "    if (body.run_id) pm.environment.set('run_id', body.run_id);",
+                  "  } catch (e) {}",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"node-3 is NotReady — investigate disk and events.\",\n  \"source\": \"postman\",\n  \"hints\": {\n    \"node\": \"node-3\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/ask"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /ask — pod security scan (namespace)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "  try {",
+                  "    const body = pm.response.json();",
+                  "    if (body.thread_id) pm.environment.set('thread_id', body.thread_id);",
+                  "    if (body.run_id) pm.environment.set('run_id', body.run_id);",
+                  "  } catch (e) {}",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Scan namespace prod for PSS baseline violations and latest image tags.\",\n  \"source\": \"postman\",\n  \"hints\": {\n    \"namespace\": \"prod\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/ask"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /alert — Alertmanager webhook (NodeNotReady)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "  try {",
+                  "    const body = pm.response.json();",
+                  "    if (body.thread_id) pm.environment.set('thread_id', body.thread_id);",
+                  "    if (body.run_id) pm.environment.set('run_id', body.run_id);",
+                  "  } catch (e) {}",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver\": \"mulat\",\n  \"status\": \"firing\",\n  \"alerts\": [\n    {\n      \"status\": \"firing\",\n      \"labels\": {\n        \"alertname\": \"KubeNodeNotReady\",\n        \"node\": \"node-3\",\n        \"severity\": \"critical\"\n      },\n      \"annotations\": {\n        \"summary\": \"Node node-3 is NotReady\",\n        \"description\": \"Kubelet on node-3 is not reporting ready.\"\n      },\n      \"startsAt\": \"2026-11-04T08:00:00Z\",\n      \"endsAt\": \"0001-01-01T00:00:00Z\",\n      \"generatorURL\": \"http://prometheus:9090/graph\"\n    }\n  ],\n  \"groupLabels\": {\n    \"alertname\": \"KubeNodeNotReady\"\n  },\n  \"commonLabels\": {\n    \"alertname\": \"KubeNodeNotReady\",\n    \"node\": \"node-3\"\n  },\n  \"commonAnnotations\": {},\n  \"externalURL\": \"http://alertmanager:9093\",\n  \"version\": \"4\",\n  \"groupKey\": \"{}:{alertname=\\\"KubeNodeNotReady\\\"}\"\n}"
+            },
+            "url": "{{baseUrl}}/alert",
+            "description": "Alertmanager webhook v4 shape. Route should normalize to the same graph entry as /ask."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /approve — approve report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thread_id\": \"{{thread_id}}\",\n  \"run_id\": \"{{run_id}}\",\n  \"decision\": \"approve\",\n  \"comment\": \"Acknowledged via Postman — no automated fixes.\"\n}"
+            },
+            "url": "{{baseUrl}}/approve",
+            "description": "Resumes LangGraph after interrupt(). Uses thread/run ids from a prior /ask or /alert response."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /approve — reject report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thread_id\": \"{{thread_id}}\",\n  \"run_id\": \"{{run_id}}\",\n  \"decision\": \"reject\",\n  \"comment\": \"Findings need manual verification first.\"\n}"
+            },
+            "url": "{{baseUrl}}/approve"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tool backing APIs (read-only, manual)",
+      "description": "Direct calls matching Tool_API.md — use to verify ClusterRole before wiring agents. Set k8sServer and k8sToken in the environment (token from `kubectl create token` or kubeconfig user).",
+      "item": [
+        {
+          "name": "Node health",
+          "item": [
+            {
+              "name": "list_nodes — GET /api/v1/nodes",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{k8sServer}}/api/v1/nodes?labelSelector=",
+                  "host": ["{{k8sServer}}"],
+                  "path": ["api", "v1", "nodes"],
+                  "query": [
+                    {
+                      "key": "labelSelector",
+                      "value": "",
+                      "description": "Optional, e.g. node-role.kubernetes.io/worker"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "describe_node — GET /api/v1/nodes/{name}",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{k8sServer}}/api/v1/nodes/node-3"
+              },
+              "response": []
+            },
+            {
+              "name": "node_events — GET /api/v1/events",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{k8sServer}}/api/v1/events?fieldSelector=involvedObject.kind=Node,involvedObject.name=node-3",
+                  "host": ["{{k8sServer}}"],
+                  "path": ["api", "v1", "events"],
+                  "query": [
+                    {
+                      "key": "fieldSelector",
+                      "value": "involvedObject.kind=Node,involvedObject.name=node-3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "pods_per_node — GET /api/v1/pods",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{k8sServer}}/api/v1/pods?fieldSelector=spec.nodeName=node-3",
+                  "host": ["{{k8sServer}}"],
+                  "path": ["api", "v1", "pods"],
+                  "query": [
+                    {
+                      "key": "fieldSelector",
+                      "value": "spec.nodeName=node-3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Right-sizing (K8s + Prometheus)",
+          "item": [
+            {
+              "name": "get_requests_limits — GET /api/v1/pods",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{k8sServer}}/api/v1/pods?limit=200",
+                  "host": ["{{k8sServer}}"],
+                  "path": ["api", "v1", "pods"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "200"
+                    },
+                    {
+                      "key": "labelSelector",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "query_cpu_usage — Prometheus instant query",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{prometheusUrl}}/api/v1/query?query=quantile_over_time(0.95,(sum%20by%20(namespace,pod,container)%20(rate(container_cpu_usage_seconds_total%7Bcontainer!%3D%22%22,container!%3D%22POD%22%7D%5B5m%5D)))%5B7d:5m%5D)",
+                  "host": ["{{prometheusUrl}}"],
+                  "path": ["api", "v1", "query"],
+                  "query": [
+                    {
+                      "key": "query",
+                      "value": "quantile_over_time(0.95,(sum by (namespace,pod,container) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\"}[5m])))[7d:5m])"
+                    }
+                  ]
+                },
+                "description": "Same PromQL pattern as Tool_API.md query_cpu_usage (p95 / 7d)."
+              },
+              "response": []
+            },
+            {
+              "name": "query_memory_usage — Prometheus instant query",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{prometheusUrl}}/api/v1/query?query=max_over_time((max%20by%20(namespace,pod,container)%20(container_memory_working_set_bytes%7Bcontainer!%3D%22%22,container!%3D%22POD%22%7D))%5B7d:5m%5D)",
+                  "host": ["{{prometheusUrl}}"],
+                  "path": ["api", "v1", "query"],
+                  "query": [
+                    {
+                      "key": "query",
+                      "value": "max_over_time((max by (namespace,pod,container) (container_memory_working_set_bytes{container!=\"\",container!=\"POD\"}))[7d:5m])"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Pod security",
+          "item": [
+            {
+              "name": "list_pods — GET /api/v1/pods",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{k8sServer}}/api/v1/pods?limit=200",
+                  "host": ["{{k8sServer}}"],
+                  "path": ["api", "v1", "pods"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "200"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get_pod_spec — GET namespaced pod",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{k8sServer}}/api/v1/namespaces/prod/pods/api-7d9f-x2"
+              },
+              "response": []
+            },
+            {
+              "name": "get namespace (PSA labels)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{k8sToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{k8sServer}}/api/v1/namespaces/prod"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    }
+  ]
+}

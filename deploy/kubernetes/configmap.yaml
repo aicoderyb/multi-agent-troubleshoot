@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mulat-config
+  namespace: ai-agents
+data:
+  PROMETHEUS_URL: "http://nspos-prometheus-server.nsp-psa-restricted.svc"
+  LLM_MODEL: "gpt-4o-mini"
+  MULAT_PORT: "8000"
+  # In-pod runs use in-cluster config; set only if the app must call an external apiserver URL
+  K8S_API_SERVER: ""
+  K8S_VERIFY_SSL: "true"

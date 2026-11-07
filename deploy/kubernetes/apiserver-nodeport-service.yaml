@@ -1,0 +1,22 @@
+# Optional: expose the API server on a NodePort for clients outside the cluster (e.g. Postman).
+# Prefer https://<control-plane-ip>:6443 when that port is already open on the node.
+# WARNING: Anyone who can reach the NodePort can attempt authenticated API calls — use firewall rules.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-apiserver-external
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/component: apiserver-exposure
+spec:
+  type: NodePort
+  selector:
+    component: kube-apiserver
+    tier: control-plane
+  ports:
+    - name: https
+      port: 443
+      targetPort: 6443
+      nodePort: 30443
+      protocol: TCP

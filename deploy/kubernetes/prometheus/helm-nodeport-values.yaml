@@ -1,0 +1,37 @@
+# Helm values overlay: expose Prometheus on NodePort 30090
+# Install:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo update
+#   helm upgrade --install kube-prometheus prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f deploy/kubernetes/prometheus/helm-nodeport-values.yaml
+#
+# Then: http://<node-ip>:30090  and  http://<node-ip>:30090/api/v1/query?query=up
+
+prometheus:
+  prometheusSpec:
+    # Scrape cadvisor/kubelet metrics needed by Tool_API.md right-sizing tools
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+  service:
+    type: NodePort
+    nodePort: 30090
+    port: 9090
+
+# Optional: expose Alertmanager for /alert webhook testing (Postman uses :9093)
+alertmanager:
+  service:
+    type: NodePort
+    nodePort: 30093
+    port: 9093
+
+grafana:
+  service:
+    type: NodePort
+    nodePort: 30030
+    port: 80
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mulat-agent-api
+  namespace: ai-agents
+spec:
+  type: ClusterIP
+  selector:
+    app: mulat-agent-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

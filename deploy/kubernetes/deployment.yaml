@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mulat-agent-api
+  namespace: ai-agents
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mulat-agent-api
+  template:
+    metadata:
+      labels:
+        app: mulat-agent-api
+    spec:
+      serviceAccountName: mulat-agent
+      containers:
+        - name: api
+          image: mulat:0.1.0
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: mulat-config
+            - secretRef:
+                name: mulat-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5

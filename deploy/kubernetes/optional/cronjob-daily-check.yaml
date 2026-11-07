@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mulat-daily-check
+  namespace: ai-agents
+spec:
+  schedule: "0 6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: curlimages/curl:8.5.0
+              args:
+                - -sS
+                - -X
+                - POST
+                - http://mulat-agent-api:8000/ask
+                - -H
+                - "Content-Type: application/json"
+                - -d
+                - '{"message":"Daily cluster check","source":"cron"}'
